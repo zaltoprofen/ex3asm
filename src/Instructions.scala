@@ -20,11 +20,6 @@ case class Line(lineNum:Int, cell:MemoryCell, comment:Comment){
 }
 
 case class Comment(cmt:String)
-trait Binary{
-  def addr:Int
-  def toBinStr(conv:mutable.HashMap[String,Int]):String
-  def toBin(conv:mutable.HashMap[String,Int]):Short
-}
 
 case class MemoryCell(addr:Int, word:Word){
   def toBinStr(conv:mutable.HashMap[String,Int]):String={
@@ -35,15 +30,15 @@ case class MemoryCell(addr:Int, word:Word){
 
 trait Word{
   def toBin(conv:mutable.HashMap[String,Int]):Short
-  def toBinStr(conv:mutable.HashMap[String,Int]):Short
+  def toBinStr(conv:mutable.HashMap[String,Int]):String
 }
 
-case class Instruction(inst:String, op:String, imm:Boolean) extends Word{
+//TODO define subclass of Instruction
+case class Instruction(inst:String, op:Short, imm:Boolean) extends Word{
   override def toBin(conv:mutable.HashMap[String,Int]):Short = {
-    if(op != null) conv.get(op) match{
-      case Some(cnvd) =>
+    if(op != null){
         val opImm = if(imm){0x8000}else{0x0000}
-        val opAddr = cnvd
+        val opAddr = op
         val opCode = inst match {
           case "AND" => 0x0000
           case "ADD" => 0x1000
@@ -55,8 +50,6 @@ case class Instruction(inst:String, op:String, imm:Boolean) extends Word{
           case _ => throw new Exception("Undefined instruction:"+inst)
         }
         (opImm | opCode | opAddr).toShort
-      case None =>
-        throw new Exception("Undefined label:"+op)
     } else{
       val opCode = inst match{
         case "CLA" => 0x7800
@@ -98,18 +91,18 @@ case class Instruction(inst:String, op:String, imm:Boolean) extends Word{
   }
 
   def decodeMemRefInst(opCode:Short):Instruction={
-    Instruction("ADD","AD",false)
+    Instruction("ADD",0,false)
   }
 
   def decodeNonRefInst(opCode:Short):Instruction={
     opCode & 0x0FFF match {
-      case 0x800 => Instruction("CLA",null,false)
-      case 0x400 => Instruction("CLE",null,false)
+      case 0x800 => Instruction("CLA",0,false)
+      case 0x400 => Instruction("CLE",0,false)
     }
   }
 
   def decodeIOInst(opCode:Short):Option[Instruction]={
-    Some(Instruction("INP",null,false))
+    Some(Instruction("INP",0,false))
   }
 }
 

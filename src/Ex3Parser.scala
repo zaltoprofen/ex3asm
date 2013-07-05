@@ -12,11 +12,19 @@ class Ex3Parser extends RegexParsers{
   val memInst="A[ND]D|LDA|STA|BUN|BSA|ISZ".r
   val nonMemInst="C[LM][AE]|CI[LR]|INC|S[PNZ]A|SZE|HLT".r
   val ioInst="INP|OUT|SK[IO]|IO[FN]|[SP]IO|IMK".r
-  val label="[_a-zA-Z0-9]+".r
+  val label= "[_a-zA-Z0-9]+".r
   val dataType="HEX|DEC|CHR|SYM".r
   val addressPrefix="ORG".r
 
-  val inst_memory_ref=memInst ~ label ~ "I".r.? ^^ {
+  val operand = label ^^ {
+    label_n =>
+    labels.get(label_n) match {
+      case Some(addr) => addr.toShort
+      case _ => throw new Exception("Undefined label:" + label_n)
+    }
+  }
+
+  val inst_memory_ref=memInst ~ operand ~ "I".r.? ^^ {
     case op ~ lbl ~ Some("I") =>
       MemoryCell(cur, Instruction(op, lbl, imm = true))
     case op ~ lbl ~ None =>
@@ -24,21 +32,16 @@ class Ex3Parser extends RegexParsers{
   }
   val inst_non_memory_ref=nonMemInst ^^ {
     result=>
-      MemoryCell(cur, Instruction(result, null, imm = false))
+      //TODO NonRef Implement
+      MemoryCell(cur, Instruction(result, 0, imm = false))
   }
   val inst_io=ioInst ^^ {
     result=>
-      MemoryCell(cur, Instruction(result, null, imm = false))
+    //TODO IO Implement
+      MemoryCell(cur, Instruction(result, 0, imm = false))
   }
-  val define_label=label <~ ',' ^^ {
-    result => {
-      if(labels.exists(_._1==result)){
-        throw new Exception("the definition of '"+result+"' duplicated at " + lineNum)
-      }
-      labels += (result -> cur)
-      result -> cur
-    }
-  }
+  val define_label=label <~ ','
+
   val data= ("HEX".r ~> "[0-9a-fA-F]+".r ^^ { res => Integer.parseInt(res,16) } |
     "DEC".r ~> "[+-]?[0-9]+".r ^^ { res => Integer.parseInt(res)} |
     "CHR".r ~> "[_0-9a-zA-Z]".r ^^ { res => res.toCharArray.apply(0).toInt }) ^^
@@ -49,12 +52,13 @@ class Ex3Parser extends RegexParsers{
   val comment="/.*".r
   val eol= opt('\r') <~ '\n'
 
-  val line=whiteSpace.? ~> address.? ~> define_label.* ~> ((inst_memory_ref | inst_non_memory_ref | inst_io | data | symbol)
-    ~ comment.? ^^ {
+  val word = inst_memory_ref | inst_non_memory_ref | inst_io | data | symbol
+
+  val line=whiteSpace.? ~> address.? ~> define_label.* ~> (word ~ comment.? ^^ {
     result => cur += 1;
       result match {
-        case word ~ Some(cmt) => Line(lineNum, word, Comment(cmt))
-        case word ~ None => Line(lineNum, word, null)
+        case word_n ~ Some(cmt) => Line(lineNum, word_n, Comment(cmt))
+        case word_n ~ None => Line(lineNum, word_n, null)
       }
   } | (comment.?) ^^ {
       case Some(cmt) => Line(lineNum, null, Comment(cmt))
@@ -66,8 +70,49 @@ class Ex3Parser extends RegexParsers{
     case None => Line(lineNum, null, null)
   }) <~ "END" <~ eol.?
 
+  private class FirstPassParser extends Ex3Parser{
+    override val operand=label ^^ {
+      labels.get(_) match {
+        case Some(addr) => addr.toShort
+        case _ => 0.toShort
+      }
+    }
+
+    override val define_label=label <~ ',' ^^ {
+      result => {
+        if(labels.exists(_._1==result)){
+          throw new Exception("the definition of '"+result+"' duplicated at " + lineNum)
+        }
+        labels += (result -> cur)
+        result
+      }
+    }
+
+    def parse1pass(src:String):mutable.HashMap[String,Int]={
+      labels = mutable.HashMap.empty[String,Int]
+      cur = 0
+      try{
+        parseAll(program,src) match {
+          case Success(res,nxt) =>
+            return labels
+          case Failure(msg,nxt) =>
+            System.err.println(Failure(msg,nxt))
+            sys.exit(1)
+          case Error(_,_)=>
+            System.err.println("Unknown Error")
+            sys.exit(1)
+        }
+      }catch {
+        case e:Exception =>
+          System.err.println(e.getMessage)
+          sys.exit(1)
+      }
+    }
+  }
+
   def parse(src:String):List[String]={
-    labels = mutable.HashMap.empty[String,Int]
+    val firstParser = new FirstPassParser()
+    labels = firstParser.parse1pass(src)
     cur = 0
     try{
       parseAll(program,src) match {

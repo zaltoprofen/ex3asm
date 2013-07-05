@@ -1,4 +1,10 @@
+import Instructions._
+import Instructions.Data
+import Instructions.Instruction
+import Instructions.Line
+import Instructions.MemoryCell
 import scala.collection.mutable
+import scala.Some
 import util.parsing.combinator._
 import scala.io._
 import java.io.PrintWriter
@@ -19,26 +25,24 @@ class Ex3Parser extends RegexParsers{
   val operand = label ^^ {
     label_n =>
     labels.get(label_n) match {
-      case Some(addr) => addr.toShort
+      case Some(address_n) => address_n.toShort
       case _ => throw new Exception("Undefined label:" + label_n)
     }
   }
 
   val inst_memory_ref=memInst ~ operand ~ "I".r.? ^^ {
     case op ~ lbl ~ Some("I") =>
-      MemoryCell(cur, Instruction(op, lbl, imm = true))
+      MemoryCell(cur, MemRefInstruction(op, lbl, imm = true))
     case op ~ lbl ~ None =>
-      MemoryCell(cur, Instruction(op, lbl, imm = false))
+      MemoryCell(cur, MemRefInstruction(op, lbl, imm = false))
   }
   val inst_non_memory_ref=nonMemInst ^^ {
     result=>
-      //TODO NonRef Implement
-      MemoryCell(cur, Instruction(result, 0, imm = false))
+      MemoryCell(cur, NonRefInstruction(result))
   }
   val inst_io=ioInst ^^ {
     result=>
-    //TODO IO Implement
-      MemoryCell(cur, Instruction(result, 0, imm = false))
+      MemoryCell(cur, NonRefInstruction(result))
   }
   val define_label=label <~ ','
 
@@ -46,7 +50,7 @@ class Ex3Parser extends RegexParsers{
     "DEC".r ~> "[+-]?[0-9]+".r ^^ { res => Integer.parseInt(res)} |
     "CHR".r ~> "[_0-9a-zA-Z]".r ^^ { res => res.toCharArray.apply(0).toInt }) ^^
     {res => MemoryCell(cur, Data(res))}
-  val symbol = "SYM".r ~> label ^^ {res=> MemoryCell(cur, Symbol(res))}
+  val symbol = "SYM".r ~> operand ^^ {res=> MemoryCell(cur, Symbol(res))}
   val address = addressPrefix ~> "[0-9a-fA-F]+".r ^^ { result => cur = Integer.parseInt(result,16) }
 
   val comment="/.*".r
@@ -55,25 +59,25 @@ class Ex3Parser extends RegexParsers{
   val word = inst_memory_ref | inst_non_memory_ref | inst_io | data | symbol
 
   val line=whiteSpace.? ~> address.? ~> define_label.* ~> (word ~ comment.? ^^ {
-    result => cur += 1;
+    result => cur += 1
       result match {
         case word_n ~ Some(cmt) => Line(lineNum, word_n, Comment(cmt))
         case word_n ~ None => Line(lineNum, word_n, null)
       }
-  } | (comment.?) ^^ {
+  } | comment.? ^^ {
       case Some(cmt) => Line(lineNum, null, Comment(cmt))
       case None => Line(lineNum, null, null)
   }) ^^ { line => lineNum+=1; line }
 
   val program = rep(line.? <~ eol ^^ {
-    case Some(line) => line
+    case Some(line_n) => line_n
     case None => Line(lineNum, null, null)
   }) <~ "END" <~ eol.?
 
   private class FirstPassParser extends Ex3Parser{
     override val operand=label ^^ {
       labels.get(_) match {
-        case Some(addr) => addr.toShort
+        case Some(address_n) => address_n.toShort
         case _ => 0.toShort
       }
     }
@@ -94,7 +98,7 @@ class Ex3Parser extends RegexParsers{
       try{
         parseAll(program,src) match {
           case Success(res,nxt) =>
-            return labels
+            labels
           case Failure(msg,nxt) =>
             System.err.println(Failure(msg,nxt))
             sys.exit(1)
@@ -118,7 +122,7 @@ class Ex3Parser extends RegexParsers{
       parseAll(program,src) match {
         case Success(res,nxt) =>
           val instructions = res.filter(_.hasCell).map(_.cell)
-          instructions.map(_.toBinStr(labels))
+          instructions.map(_.toBinStr)
         case Failure(msg,nxt) =>
           System.err.println(Failure(msg,nxt))
           sys.exit(1)
@@ -135,15 +139,15 @@ class Ex3Parser extends RegexParsers{
 }
 
 object MainObj{
-  val freg="""([/0-9a-zA-Z\._\-]+)\.asm""".r
-  def main(args: Array[String]):Unit={
+  val fileNameRegex="""([/0-9a-zA-Z\._\-]+)\.asm""".r
+  def main(args: Array[String]) {
     if(args.length!=1){
       System.err.println("Invalid argument (insufficient)")
       sys.exit(1)
     }
     var filename:String=null
     args(0) match {
-      case freg(fn) => filename=fn
+      case fileNameRegex(fn) => filename=fn
       case _ =>
         System.err.println("Invalid argument (Not .asm)")
         sys.exit(1)
@@ -153,7 +157,7 @@ object MainObj{
     val parser=new Ex3Parser()
     val result=parser.parse(src.mkString("\n"))
     val writer=new PrintWriter(filename+".mem")
-    result.foreach(writer.println)
+    result.foreach(writer.println(_))
     writer.close()
   }
 }

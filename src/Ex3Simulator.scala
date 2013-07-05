@@ -1,10 +1,11 @@
+import Instructions.Line
 import scala.collection._
 class Ex3Simulator(parsedAssembly:List[Line], label2Address:mutable.HashMap[String,Int]) {
   val memory:Array[Short]=new Array[Short](4096)
   parsedAssembly.withFilter(_.hasCell).foreach(
   { instruction =>
-    val addr = instruction.cell.addr
-    memory.update(addr,instruction.cell.toBin(label2Address))
+    val address = instruction.cell.address
+    memory.update(address,instruction.cell.toBin)
   })
 
   var pc:Int=10

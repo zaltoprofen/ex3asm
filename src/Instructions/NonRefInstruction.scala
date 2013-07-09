@@ -57,4 +57,31 @@ case class NonRefInstruction(inst:String) extends Instruction {
     }
     opCode.toShort
   }
+
+  def execute(executor: Ex3Executor) = {
+    inst match{
+      case "CLA" => executor.CLA()
+      case "CLE" => executor.CLE()
+      case "CMA" => executor.CMA()
+      case "CME" => executor.CME()
+      case "CIR" => executor.CIR()
+      case "CIL" => executor.CIL()
+      case "INC" => executor.INC()
+      case "SPA" => executor.SPA()
+      case "SNA" => executor.SNA()
+      case "SZA" => executor.SZA()
+      case "SZE" => executor.SZE()
+      case "HLT" => executor.HLT()
+      case "INP" => executor.INP()
+      case "OUT" => executor.OUT()
+      case "SKI" => executor.SKI()
+      case "SKO" => executor.SKO()
+      case "ION" => executor.ION()
+      case "IOF" => executor.IOF()
+      case "SIO" => executor.SIO()
+      case "PIO" => executor.PIO()
+      case "IMK" => executor.IMK()
+      case _ => throw new Exception("Undefined instruction:"+inst)
+    }
+  }
 }

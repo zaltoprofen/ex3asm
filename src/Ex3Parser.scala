@@ -114,15 +114,14 @@ class Ex3Parser extends RegexParsers{
     }
   }
 
-  def parse(src:String):List[String]={
+  def parse(src:String):List[Line]={
     val firstParser = new FirstPassParser()
     labels = firstParser.parse1pass(src)
     cur = 0
     try{
       parseAll(program,src) match {
         case Success(res,nxt) =>
-          val instructions = res.filter(_.hasCell).map(_.cell)
-          instructions.map(_.toBinStr)
+          res
         case Failure(msg,nxt) =>
           System.err.println(Failure(msg,nxt))
           sys.exit(1)
@@ -153,11 +152,22 @@ object MainObj{
         sys.exit(1)
     }
     val source=Source.fromFile(args(0))
-    var src = source.getLines().toList
+    val src = source.getLines().toList
     val parser=new Ex3Parser()
-    val result=parser.parse(src.mkString("\n"))
-    val writer=new PrintWriter(filename+".mem")
-    result.foreach(writer.println(_))
-    writer.close()
+    val instructions=parser.parse(src.mkString("\n")).filter(_.hasCell).map(_.cell)
+
+    val mem_writer=new PrintWriter(filename+".mem")
+    instructions.map(_.toBinStr).foreach(mem_writer.println)
+    mem_writer.close()
+
+    val prb_writer = new PrintWriter(filename + ".prb")
+    instructions.filter(_.word.isInstanceOf[Data]).map({data =>
+      val address = data.address
+      val binary = data.word.toBin.toInt & 0xffff
+      val probe = binary | address <<16
+      f"$probe%08x"
+    }).foreach(prb_writer.println)
+    prb_writer.println("f0000000")
+    prb_writer.close()
   }
 }

@@ -21,4 +21,5 @@ abstract class Instruction() extends Word{
       val opCode = toBin
       "%04x".format(opCode)
   }
+  def execute(executor:Ex3Executor)
 }

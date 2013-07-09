@@ -33,4 +33,17 @@ case class MemRefInstruction(inst:String, operand:Short, imm:Boolean) extends In
     }
     (opImm | opCode | operand).toShort
   }
+
+  def execute(executor: Ex3Executor) = {
+    inst match{
+      case "AND" => executor.AND(operand,imm)
+      case "ADD" => executor.ADD(operand,imm)
+      case "LDA" => executor.LDA(operand,imm)
+      case "STA" => executor.STA(operand,imm)
+      case "BUN" => executor.BUN(operand,imm)
+      case "BSA" => executor.BSA(operand,imm)
+      case "ISZ" => executor.ISZ(operand,imm)
+      case _ => throw new Exception("Undefined instruction:"+inst)
+    }
+  }
 }

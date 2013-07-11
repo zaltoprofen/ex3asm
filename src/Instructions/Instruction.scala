@@ -3,7 +3,7 @@ package Instructions
 import scala.Option
 
 object Instruction{
-  def apply(opCode:Short):Instruction={
+  def apply(opCode:Int):Instruction={
     opCode & 0xF000 match {
       case 0xF000 => NonRefInstruction(opCode)
       case 0x7000 => NonRefInstruction(opCode)
@@ -11,7 +11,7 @@ object Instruction{
     }
   }
 
-  def unapply(opCode:Short):Option[Instruction]={
+  def unapply(opCode:Int):Option[Instruction]={
     Some(Instruction(opCode))
   }
 }

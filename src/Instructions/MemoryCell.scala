@@ -5,5 +5,5 @@ case class MemoryCell(address:Int, word:Word){
     "@%03x %s".format(address, word.toBinStr)
   }
 
-  def toBin:Short = word.toBin
+  def toBin:Int = word.toBin
 }

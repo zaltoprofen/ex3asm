@@ -15,34 +15,60 @@ class Ex3Parser extends RegexParsers{
   var lineNum:Int =1
   var cur:Int =0
 
-  val memInst="A[ND]D|LDA|STA|BUN|BSA|ISZ".r
+  val i_n1="A[ND]D|SUB|X?OR|LDA|STA|BUN|BSA|ISZ|J[PZN]A|JZE".r
   val nonMemInst="C[LM][AE]|CI[LR]|INC|S[PNZ]A|SZE|HLT".r
   val ioInst="INP|OUT|SK[IO]|IO[FN]|[SP]IO|IMK".r
-  val label= "[_a-zA-Z0-9]+".r
+  val label= "[_a-zA-Z][_a-zA-Z0-9]*".r ^^ {
+    case "I" => throw new Exception("I is reserved.")
+    case x => x
+  }
   val dataType="HEX|DEC|CHR|SYM".r
   val addressPrefix="ORG".r
+  val numberDec = "[0-9]+".r ^^ { result => Integer.parseInt(result) }
+  val numberHex = "0x[0-9a-fA-F]+".r ^^ { result => Integer.parseInt(result.drop(2), 16) }
+  val number = numberDec | numberHex
 
   val operand = label ^^ {
     label_n =>
     labels.get(label_n) match {
-      case Some(address_n) => address_n.toShort
+      case Some(address_n) => address_n
       case _ => throw new Exception("Undefined label:" + label_n)
     }
   }
 
-  val inst_memory_ref=memInst ~ operand ~ "I".r.? ^^ {
+  val inst_n1 = i_n1 ~ operand ~ "I".r.? ^^ {
     case op ~ lbl ~ Some("I") =>
-      MemoryCell(cur, MemRefInstruction(op, lbl, imm = true))
+      MemoryCell(cur, NoLiteralOneOperandInstruction(op, lbl, indirect = true))
     case op ~ lbl ~ None =>
-      MemoryCell(cur, MemRefInstruction(op, lbl, imm = false))
+      MemoryCell(cur, NoLiteralOneOperandInstruction(op, lbl, indirect = false))
   }
-  val inst_non_memory_ref=nonMemInst ^^ {
-    result=>
-      MemoryCell(cur, NonRefInstruction(result))
+
+  val inst_1n = i_n1 ~ number ^^{
+    case inst ~ literal =>
+      MemoryCell(cur,OneLiteralNoOperandInstruction(inst,literal))
   }
-  val inst_io=ioInst ^^ {
+
+  val inst_11 = i_n1 ~ operand ~ number ~ "I".r.? ^^ {
+    case op ~ lbl ~ lit ~ Some("I") =>
+      MemoryCell(cur, OneLiteralOneOperandInstruction(op, lbl, lit, indirect = true))
+    case op ~ lbl ~ lit ~ None =>
+      MemoryCell(cur, OneLiteralOneOperandInstruction(op, lbl, lit, indirect = false))
+  }
+
+  val inst_n2 = i_n1 ~ operand ~ operand ~ "I".r.? ^^{
+    case inst ~ op1 ~ op2 ~ Some("I") =>
+      MemoryCell(cur, TwoOperandInstruction(inst, op1, op2, indirect = true))
+    case inst ~ op1 ~ op2 ~ None =>
+      MemoryCell(cur, TwoOperandInstruction(inst, op1, op2, indirect = false))
+  }
+
+  val inst_nn=nonMemInst ^^ {
     result=>
-      MemoryCell(cur, NonRefInstruction(result))
+      MemoryCell(cur, NoLiteralNoOperandInstruction(result))
+  }
+  val inst_nn_io=ioInst ^^ {
+    result=>
+      MemoryCell(cur, NoLiteralNoOperandInstruction(result))
   }
   val define_label=label <~ ','
 
@@ -56,7 +82,7 @@ class Ex3Parser extends RegexParsers{
   val comment="/.*".r
   val eol= opt('\r') <~ '\n'
 
-  val word = inst_memory_ref | inst_non_memory_ref | inst_io | data | symbol
+  val word = inst_n1 | inst_1n | inst_11 | inst_n2 | inst_nn | inst_nn_io | data | symbol
 
   val line=whiteSpace.? ~> address.? ~> define_label.* ~> (word ~ comment.? ^^ {
     result => cur += 1
@@ -77,8 +103,8 @@ class Ex3Parser extends RegexParsers{
   private class FirstPassParser extends Ex3Parser{
     override val operand=label ^^ {
       labels.get(_) match {
-        case Some(address_n) => address_n.toShort
-        case _ => 0.toShort
+        case Some(address_n) => address_n
+        case _ => 0
       }
     }
 

@@ -2,13 +2,13 @@ package Instructions
 
 trait Ex3Executor {
   // Memory Ref. Inst.
-  def AND(operand:Short, i:Boolean)
-  def ADD(operand:Short, i:Boolean)
-  def LDA(operand:Short, i:Boolean)
-  def STA(operand:Short, i:Boolean)
-  def BUN(operand:Short, i:Boolean)
-  def BSA(operand:Short, i:Boolean)
-  def ISZ(operand:Short, i:Boolean)
+  def AND(operand:Int, i:Boolean)
+  def ADD(operand:Int, i:Boolean)
+  def LDA(operand:Int, i:Boolean)
+  def STA(operand:Int, i:Boolean)
+  def BUN(operand:Int, i:Boolean)
+  def BSA(operand:Int, i:Boolean)
+  def ISZ(operand:Int, i:Boolean)
 
   // Other Inst.
   def CLA()

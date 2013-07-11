@@ -1,6 +1,6 @@
 package Instructions
 
 trait Word{
-  def toBin:Short
+  def toBin:Int
   def toBinStr:String
 }

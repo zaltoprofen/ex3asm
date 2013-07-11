@@ -189,7 +189,7 @@ object MainObj{
     val prb_writer = new PrintWriter(filename + ".prb")
     instructions.filter(_.word.isInstanceOf[Data]).map({data =>
       val address = data.address
-      val binary = data.word.toBin.toInt & 0xffff
+      val binary = data.word.toBin & 0xffff
       val probe = binary | address <<16
       f"$probe%08x"
     }).foreach(prb_writer.println)

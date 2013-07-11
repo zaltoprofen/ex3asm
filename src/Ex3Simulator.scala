@@ -35,12 +35,12 @@ class Ex3Simulator(parsedAssembly:List[Line]) extends Ex3Executor {
   // Memory Ref. Inst.
   def AND(operand: Int, i: Boolean) {
     val op = if(i){memory.apply(operand)}else operand
-    ac = (ac & memory.apply(op)).toInt
+    ac = ac & memory.apply(op)
   }
 
   def ADD(operand: Int, i: Boolean) {
     val op = if(i){memory.apply(operand)}else operand
-    val t = ac.toInt + memory.apply(op).toInt
+    val t = ac + memory.apply(op)
     e = (t & ~0xFFFF) != 0
   }
 
@@ -62,13 +62,13 @@ class Ex3Simulator(parsedAssembly:List[Line]) extends Ex3Executor {
   def BSA(operand: Int, i: Boolean) {
     val op = if(i){memory.apply(operand)}else operand
     memory.update(op, pc)
-    pc = (op + 1).toInt
+    pc = op + 1
   }
 
   def ISZ(operand: Int, i: Boolean) {
     val op = if(i){memory.apply(operand)}else operand
-    val t:Int = (memory.apply(op) + 1).toInt
-    if(t==0) pc = (pc + 1).toInt
+    val t:Int = memory.apply(op) + 1
+    if(t==0) pc = pc + 1
     memory.update(operand, t)
   }
 
@@ -77,31 +77,31 @@ class Ex3Simulator(parsedAssembly:List[Line]) extends Ex3Executor {
 
   def CLE() { e = false}
 
-  def CMA() { ac = (~ac).toInt }
+  def CMA() { ac = ~ac }
 
   def CME() { e = !e}
 
   def CIR() {
-    val carry:Int = (if(e){0x8000}else 0x0000).toInt
+    val carry:Int = if(e){0x8000}else 0x0000
     e = (ac & 0x0001) == 0x0001
-    ac = (ac.>>(1) | carry).toInt
+    ac = ac.>>(1) | carry
   }
 
   def CIL() {
-    val carry:Int = (if(e){0x0001}else 0x0000).toInt
+    val carry:Int = if(e){0x0001}else 0x0000
     e = (ac & 0x8000) == 0x8000
-    ac = (ac.<<(1) | carry).toInt
+    ac = ac.<<(1) | carry
   }
 
-  def INC() { ac = (ac + 1).toInt }
+  def INC() { ac = ac + 1 }
 
-  def SPA() { if(ac >= 0) pc = (pc + 1).toInt }
+  def SPA() { if(ac >= 0) pc = pc + 1 }
 
-  def SNA() { if(ac < 0) pc = (pc + 1).toInt }
+  def SNA() { if(ac < 0) pc = pc + 1 }
 
-  def SZA() { if(ac == 0) pc = (pc + 1).toInt }
+  def SZA() { if(ac == 0) pc = pc + 1 }
 
-  def SZE() { if(!e) pc = (pc + 1).toInt }
+  def SZE() { if(!e) pc = pc + 1 }
 
   def HLT() { s = true }
 

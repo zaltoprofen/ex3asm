@@ -4,10 +4,15 @@ import scala.Option
 
 object Instruction{
   def apply(opCode:Int):Instruction={
-    opCode & 0xF000 match {
-      case 0xF000 => NonRefInstruction(opCode)
-      case 0x7000 => NonRefInstruction(opCode)
-      case _ => MemRefInstruction(opCode)
+    (opCode & 0xE000) >> 29 match {
+      case 0x0 => NoLiteralOneOperandInstruction(opCode)
+      case 0x1 => TwoOperandInstruction(opCode)
+      case 0x2 => NoLiteralOneOperandInstruction(opCode)
+      case 0x3 => TwoOperandInstruction(opCode)
+      case 0x4 => NoLiteralNoOperandInstruction(opCode)
+      case 0x5 => OneLiteralOneOperandInstruction(opCode)
+      case 0x6 => OneLiteralNoOperandInstruction(opCode)
+      case 0x7 => OneLiteralOneOperandInstruction(opCode)
     }
   }
 
@@ -19,7 +24,7 @@ object Instruction{
 abstract class Instruction() extends Word{
   override def toBinStr:String={
       val opCode = toBin
-      "%04x".format(opCode)
+      f"$opCode%08x"
   }
   def execute(executor:Ex3Executor)
 }

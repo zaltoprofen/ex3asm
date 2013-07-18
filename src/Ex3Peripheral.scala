@@ -8,7 +8,7 @@ trait PeripheralPort {
   def execute()={
     if(interval < 0 && !isReady){
       interval=randomInterval()
-      println("interval[%s]=",name,interval)
+      printf("interval[%s]=%d\n",name,interval)
     }
     if(interval == 0){
       isReady=true
@@ -18,56 +18,53 @@ trait PeripheralPort {
   }
 
   def isInterrupt:Boolean = interval<=0 && isReady
-
-  def setNextInterval(): Boolean =
-    if (interval < 0 && !isReady) {
-      interval = randomInterval()
-      true
-    }
-    else {
-      false
-    }
 }
 
 
 object Ex3IO{
   val console=new tools.jline.console.ConsoleReader()
   object PIN extends PeripheralPort {
-    override def randomInterval():Int = random.nextInt(50)
+    override def randomInterval():Int = random.nextInt(50)+1
     override val name: String = "PIN"
     override var isReady: Boolean = false
     override def interruptProcess()={
-      print("input[%s]=",name)
+      println("Interrupted by PIN!")
+      printf("input[%s]=",name)
       val inputData=console.readVirtualKey().toByte
-      println("%c",inputData.toChar)
+      printf("%c\n",inputData.toChar)
       INPR=inputData
     }
   }
 
   object POU extends PeripheralPort {
-    override def randomInterval():Int = 0
+    override def randomInterval():Int = 1
     override val name: String = "POU"
     override var isReady:Boolean = false
-    override def interruptProcess()={}
+    override def interruptProcess()={
+      println("Interrupted by POU!")
+    }
   }
 
   object SIN extends PeripheralPort {
-    override def randomInterval():Int = random.nextInt(50)
+    override def randomInterval():Int = random.nextInt(50)+1
     override val name: String = "SIN"
     override var isReady: Boolean = false
     override def interruptProcess()={
-      print("input[%s]=",name)
+      println("Interrupted by SIN!")
+      printf("input[%s]=",name)
       val inputData=Console.in.read.toByte
-      println("%c",inputData.toChar)
+      printf("%c\n",inputData.toChar)
       INPR=inputData
     }
   }
 
   object SOU extends PeripheralPort {
-    override def randomInterval():Int = 0
+    override def randomInterval():Int = 1
     override val name: String = "SOU"
     override var isReady:Boolean = false
-    override def interruptProcess()={}
+    override def interruptProcess()={
+      println("Interrupted by SOU!")
+    }
   }
 
   var interruptHandler:() => Unit = null
@@ -83,7 +80,7 @@ object Ex3IO{
       if((IMSK & 0x8)!=0){SIN.execute()}
       if((IMSK & 0x4)!=0){SOU.execute()}
       if(PIN.isReady && (IMSK & 0x2)!=0 || SIN.isReady && (IMSK&0x8) != 0 ||
-        POU.isReady && (IMSK & 0x1)!=0 || SIN.isReady && (IMSK & 0x4) !=0){
+        POU.isReady && (IMSK & 0x1)!=0 || SOU.isReady && (IMSK & 0x4) !=0){
         IEN=false
         interruptHandler()
       }

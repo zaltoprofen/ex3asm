@@ -32,6 +32,7 @@ class Ex3Simulator(parsedAssembly:List[Line], invMap:mutable.HashMap[Int,String]
   }
 
   def step():Boolean = {
+    Ex3IO.execute()
     val old_pc=pc
     if(!r){
       ir = memory.apply(pc)
@@ -40,9 +41,11 @@ class Ex3Simulator(parsedAssembly:List[Line], invMap:mutable.HashMap[Int,String]
       Instruction(ir).execute(this)
       printCPUStatus()
     }else{
+      println("pc=1")
       r=false
       memory.update(0, pc)
       pc = 1
+      printCPUStatus()
     }
     breakpoints.exists(_ == old_pc)
   }
@@ -54,7 +57,7 @@ class Ex3Simulator(parsedAssembly:List[Line], invMap:mutable.HashMap[Int,String]
 
   def setBreakpoint()={
     print("Breakpoint: 0x")
-    val bp = Integer.parseInt(Console.readLine(),16)
+    val bp = Integer.parseInt(Ex3Utils.readLineWithEcho(3),16)
     if(!breakpoints.add(bp)){
       breakpoints.remove(bp)
       println("Remove breakpoint(%03x)".format(bp))
@@ -68,7 +71,17 @@ class Ex3Simulator(parsedAssembly:List[Line], invMap:mutable.HashMap[Int,String]
   }
 
   def allDump()={
-    parsedAssembly.filter(_.hasCell).map(_.cell.toString(invMap)).foreach(println)
+    //parsedAssembly.filter(_.hasCell).map(_.cell.toString(invMap)).foreach(println)
+    parsedAssembly.filter(_.hasCell).map(_.cell).map(cell=>{
+      val addr = cell.address
+      val word = cell.word match {
+        case inst:Instruction => Instruction(memory.apply(addr))
+        case data:Data => Data(memory.apply(addr))
+        case symbol:Symbol => Symbol(memory.apply(addr))
+        case _ => throw new Exception("dump failed")
+      }
+      MemoryCell(addr, word).toString(invMap)
+    }).foreach(println)
   }
 
   def simulate(){
@@ -344,11 +357,11 @@ class Ex3Simulator(parsedAssembly:List[Line], invMap:mutable.HashMap[Int,String]
   }
 
   def SKI() {
-    if(Ex3IO.isReadable){ac+=1}
+    if(Ex3IO.isReadable){pc+=1}
   }
 
   def SKO() {
-    if(Ex3IO.isWritable){ac+=1}
+    if(Ex3IO.isWritable){pc+=1}
   }
 
   def ION() {

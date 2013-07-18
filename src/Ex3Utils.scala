@@ -23,8 +23,9 @@ object Ex3Utils {
     val expansion = map.toArray
     val invMap= new mutable.HashMap[Int,String]()
     addresses.foreach( addr => {
-      val label = expansion.find(_._2 == addr) match{
+      val label = expansion.find( tuple => tuple._2 == addr ) match{
         case Some(tuple) => tuple._1
+        case None => ""
       }
       invMap += ((addr, label))
     })
@@ -36,5 +37,20 @@ object Ex3Utils {
       case Some(label) => label
       case None => ""
     }
+  }
+
+  def readLineWithEcho(count:Int):String={
+    var i=0
+    var c:Char=' '
+    val console=new tools.jline.console.ConsoleReader()
+    var buffer:String =""
+    while(i<count){
+      c = console.readVirtualKey().toChar
+      print(c)
+      if(c=='\n') return buffer
+      buffer += c
+      i+=1
+    }
+    buffer
   }
 }

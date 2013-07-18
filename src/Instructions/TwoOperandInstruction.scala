@@ -18,7 +18,19 @@ object TwoOperandInstruction{
 }
 
 case class TwoOperandInstruction(inst:String, operand1:Int, operand2:Int, indirect:Boolean) extends Instruction{
-  def execute(executor: Ex3Executor) {}
+  def execute(executor: Ex3Executor) {
+    val op1 = operand1 & 0xfff
+    val op2 = operand2 & 0xfff
+    inst match{
+      case "ADD" => executor.ADD(op1,op2,indirect)
+      case "SUB" => executor.SUB(op1,op2,indirect)
+      case "AND" => executor.AND(op1,op2,indirect)
+      case "OR"  =>  executor.OR(op1,op2,indirect)
+      case "XOR" => executor.XOR(op1,op2,indirect)
+      case "MOVE"=>executor.MOVE(op1,op2,indirect)
+      case _ => throw new Exception("Not N2 instruction.:"+inst)
+    }
+  }
 
   def toBin: Int = {
     val op1 = (operand1 & 0xfff) << 12
@@ -34,5 +46,10 @@ case class TwoOperandInstruction(inst:String, operand1:Int, operand2:Int, indire
       case _ => throw new Exception("Not N2 instruction.:"+inst)
     }
     opcode | indirect_bit | op1 | op2
+  }
+
+  override def toString(invMap:scala.collection.mutable.HashMap[Int,String]):String={
+    "%s 0x%03x(%s) 0x%03x(%s)%s".format(inst, operand1, invMap.get(operand1).get,
+      operand2, invMap.get(operand2).get, if(indirect){" I"}else{""})
   }
 }

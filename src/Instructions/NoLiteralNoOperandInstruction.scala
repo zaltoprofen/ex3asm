@@ -1,4 +1,5 @@
 package Instructions
+import scala.collection.mutable
 
 object NoLiteralNoOperandInstruction{
   def apply(opCode:Int):NoLiteralNoOperandInstruction = {
@@ -31,7 +32,32 @@ object NoLiteralNoOperandInstruction{
 }
 
 case class NoLiteralNoOperandInstruction(inst:String) extends Instruction {
-  def execute(executor: Ex3Executor) {}
+  def execute(executor: Ex3Executor) {
+    inst match{
+      case "CLA" => executor.CLA()
+      case "CLE" => executor.CLE()
+      case "CMA" => executor.CMA()
+      case "CME" => executor.CME()
+      case "CIR" => executor.CIR()
+      case "CIL" => executor.CIL()
+      case "INC" => executor.INC()
+      case "SPA" => executor.SPA()
+      case "SZA" => executor.SZA()
+      case "SNA" => executor.SNA()
+      case "SZE" => executor.SZE()
+      case "INP" => executor.INP()
+      case "OUT" => executor.OUT()
+      case "SKI" => executor.SKI()
+      case "SKO" => executor.SKO()
+      case "ION" => executor.ION()
+      case "IOF" => executor.IOF()
+      case "SIO" => executor.SIO()
+      case "PIO" => executor.PIO()
+      case "IMK" => executor.IMK()
+      case "HLT" => executor.HLT()
+      case _ => throw new Exception("Not NN instruction.:"+inst)
+    }
+  }
 
   def toBin: Int = {
     inst match{
@@ -58,5 +84,9 @@ case class NoLiteralNoOperandInstruction(inst:String) extends Instruction {
       case "HLT" => 0x80100000
       case _ => throw new Exception("Not NN instruction.:"+inst)
     }
+  }
+
+  override def toString(invMap:mutable.HashMap[Int,String]):String={
+    "%s".format(inst)
   }
 }

@@ -1,4 +1,5 @@
 package Instructions
+import scala.collection.mutable
 
 object NoLiteralOneOperandInstruction{
   def apply(opCode:Int):NoLiteralOneOperandInstruction ={
@@ -49,5 +50,29 @@ case class NoLiteralOneOperandInstruction(inst:String, operand1:Int, indirect:Bo
     operand | indirect_bit | opcode
   }
 
-  def execute(executor: Ex3Executor) {}
+  def execute(executor: Ex3Executor) {
+    val operand = operand1 & 0xfff
+    val indirect_bit = indirect
+    inst match{
+      case "ADD" => executor.ADD(operand,indirect_bit)
+      case "SUB" => executor.SUB(operand,indirect_bit)
+      case "AND" => executor.AND(operand,indirect_bit)
+      case "OR"  =>  executor.OR(operand,indirect_bit)
+      case "XOR" => executor.XOR(operand,indirect_bit)
+      case "LDA" => executor.LDA(operand,indirect_bit)
+      case "STA" => executor.STA(operand,indirect_bit)
+      case "BUN" => executor.BUN(operand,indirect_bit)
+      case "BSA" => executor.BSA(operand,indirect_bit)
+      case "JPA" => executor.JPA(operand,indirect_bit)
+      case "JZA" => executor.JNA(operand,indirect_bit)
+      case "JNA" => executor.JZA(operand,indirect_bit)
+      case "JZE" => executor.JZE(operand,indirect_bit)
+      case "ISZ" => executor.ISZ(operand,indirect_bit)
+      case _ => throw new Exception("Not N1 instruction.:"+inst)
+    }
+  }
+
+  override def toString(invMap:mutable.HashMap[Int,String]):String={
+    "%s 0x%03x(%s)%s".format(inst, operand1, invMap.get(operand1).get, if(indirect){" I"}else{""})
+  }
 }

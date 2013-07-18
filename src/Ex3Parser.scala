@@ -10,13 +10,16 @@ import scala.io._
 import java.io.PrintWriter
 
 class Ex3Parser extends RegexParsers{
-  override val whiteSpace="[ \t]*".r
+  override val whiteSpace="[ \t]+".r
   var labels: mutable.HashMap[String,Int]=mutable.HashMap.empty[String,Int]
   var lineNum:Int =1
   var cur:Int =0
 
   val i_n1="A[ND]D|SUB|X?OR|LDA|STA|BUN|BSA|ISZ|J[PZN]A|JZE".r
-  val nonMemInst="C[LM][AE]|CI[LR]|INC|S[PNZ]A|SZE|HLT".r
+  val i_n2="A[ND]D|SUB|X?OR|MOVE".r
+  val i_1n="A[ND]D|OR|LDA".r
+  val i_11="A[ND]D|OR|STA".r
+  val i_nn="C[LM][AE]|CI[LR]|INC|S[PNZ]A|SZE|HLT".r
   val ioInst="INP|OUT|SK[IO]|IO[FN]|[SP]IO|IMK".r
   val label= "[_a-zA-Z][_a-zA-Z0-9]*".r ^^ {
     case "I" => throw new Exception("I is reserved.")
@@ -24,9 +27,11 @@ class Ex3Parser extends RegexParsers{
   }
   val dataType="HEX|DEC|CHR|SYM".r
   val addressPrefix="ORG".r
-  val numberDec = "[0-9]+".r ^^ { result => Integer.parseInt(result) }
-  val numberHex = "0x[0-9a-fA-F]+".r ^^ { result => Integer.parseInt(result.drop(2), 16) }
-  val number = numberDec | numberHex
+  val numberDec = """[\+\-]?[0-9]+""".r ^^ { result => Integer.parseInt(result) }
+  val numberHex = "0x[0-9a-fA-F]{1,8}".r ^^ {
+    case result => Ex3Utils.hex2Int(result.drop(2))
+  }
+  val number = numberHex | numberDec
 
   val operand = label ^^ {
     label_n =>
@@ -43,26 +48,26 @@ class Ex3Parser extends RegexParsers{
       MemoryCell(cur, NoLiteralOneOperandInstruction(op, lbl, indirect = false))
   }
 
-  val inst_1n = i_n1 ~ number ^^{
+  val inst_1n = i_1n ~ number ^^{
     case inst ~ literal =>
       MemoryCell(cur,OneLiteralNoOperandInstruction(inst,literal))
   }
 
-  val inst_11 = i_n1 ~ operand ~ number ~ "I".r.? ^^ {
+  val inst_11 = i_11 ~ operand ~ number ~ "I".r.? ^^ {
     case op ~ lbl ~ lit ~ Some("I") =>
       MemoryCell(cur, OneLiteralOneOperandInstruction(op, lbl, lit, indirect = true))
     case op ~ lbl ~ lit ~ None =>
       MemoryCell(cur, OneLiteralOneOperandInstruction(op, lbl, lit, indirect = false))
   }
 
-  val inst_n2 = i_n1 ~ operand ~ operand ~ "I".r.? ^^{
+  val inst_n2 = i_n2 ~ operand ~ operand ~ "I".r.? ^^{
     case inst ~ op1 ~ op2 ~ Some("I") =>
       MemoryCell(cur, TwoOperandInstruction(inst, op1, op2, indirect = true))
     case inst ~ op1 ~ op2 ~ None =>
       MemoryCell(cur, TwoOperandInstruction(inst, op1, op2, indirect = false))
   }
 
-  val inst_nn=nonMemInst ^^ {
+  val inst_nn=i_nn ^^ {
     result=>
       MemoryCell(cur, NoLiteralNoOperandInstruction(result))
   }
@@ -82,7 +87,7 @@ class Ex3Parser extends RegexParsers{
   val comment="/.*".r
   val eol= opt('\r') <~ '\n'
 
-  val word = inst_n1 | inst_1n | inst_11 | inst_n2 | inst_nn | inst_nn_io | data | symbol
+  val word = inst_11 | inst_n2 | inst_n1 | inst_1n | inst_nn | inst_nn_io | data | symbol
 
   val line=whiteSpace.? ~> address.? ~> define_label.* ~> (word ~ comment.? ^^ {
     result => cur += 1
@@ -165,7 +170,7 @@ class Ex3Parser extends RegexParsers{
 
 object MainObj{
   val fileNameRegex="""([/0-9a-zA-Z\._\-]+)\.asm""".r
-  def main(args: Array[String]) {
+  def main(args: Array[String]):Unit = {
     if(args.length!=1){
       System.err.println("Invalid argument (insufficient)")
       sys.exit(1)
@@ -180,7 +185,8 @@ object MainObj{
     val source=Source.fromFile(args(0))
     val src = source.getLines().toList
     val parser=new Ex3Parser()
-    val instructions=parser.parse(src.mkString("\n")).filter(_.hasCell).map(_.cell)
+    val lines = parser.parse(src.mkString("\n"))
+    val instructions=lines.filter(_.hasCell).map(_.cell)
 
     val mem_writer=new PrintWriter(filename+".mem")
     instructions.map(_.toBinStr).foreach(mem_writer.println)
@@ -195,5 +201,8 @@ object MainObj{
     }).foreach(prb_writer.println)
     prb_writer.println("f0000000")
     prb_writer.close()
+
+    val simulator=new Ex3Simulator(lines, Ex3Utils.inverseMap(parser.labels))
+    simulator.simulate()
   }
 }

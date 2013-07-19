@@ -10,7 +10,7 @@ import scala.io._
 import java.io.PrintWriter
 
 class Ex3Parser extends RegexParsers{
-  override val whiteSpace="[ \t]+".r
+  override val whiteSpace="""[ \t]+""".r
   var labels: mutable.HashMap[String,Int]=mutable.HashMap.empty[String,Int]
   var lineNum:Int =1
   var cur:Int =0
@@ -22,9 +22,10 @@ class Ex3Parser extends RegexParsers{
   val i_nn="C[LM][AE]|CI[LR]|INC|S[PNZ]A|SZE|HLT".r
   val ioInst="INP|OUT|SK[IO]|IO[FN]|[SP]IO|IMK".r
   val label= "[_a-zA-Z][_a-zA-Z0-9]*".r ^^ {
-    case "I" => throw new Exception("I is reserved.")
+    case "I" => throw new Exception("I is reserved at " + lineNum)
     case x => x
   }
+  val indirect = "I".r
   val dataType="HEX|DEC|CHR|SYM".r
   val addressPrefix="ORG".r
   val numberDec = """[\+\-]?[0-9]+""".r ^^ { result => Integer.parseInt(result) }
@@ -33,11 +34,13 @@ class Ex3Parser extends RegexParsers{
   }
   val number = numberHex | numberDec
 
+  val indirectOrLabel = indirect | label
+
   val operand = label ^^ {
     label_n =>
     labels.get(label_n) match {
       case Some(address_n) => address_n
-      case _ => throw new Exception("Undefined label:" + label_n)
+      case _ => throw new Exception("Undefined label:" + label_n+ " at "+lineNum)
     }
   }
 
@@ -75,7 +78,7 @@ class Ex3Parser extends RegexParsers{
     result=>
       MemoryCell(cur, NoLiteralNoOperandInstruction(result))
   }
-  val define_label=label <~ ','
+  val define_label=label <~ ',' <~ whiteSpace.?
 
   val data= ("HEX".r ~> "[0-9a-fA-F]+".r ^^ { res => Integer.parseInt(res,16) } |
     "DEC".r ~> "[+-]?[0-9]+".r ^^ { res => Integer.parseInt(res)} |
@@ -84,10 +87,10 @@ class Ex3Parser extends RegexParsers{
   val symbol = "SYM".r ~> operand ^^ {res=> MemoryCell(cur, Symbol(res))}
   val address = addressPrefix ~> "[0-9a-fA-F]+".r ^^ { result => cur = Integer.parseInt(result,16) }
 
-  val comment="/.*".r
+  val comment="(/.*)?".r
   val eol= opt('\r') <~ '\n'
 
-  val word = inst_11 | inst_n2 | inst_n1 | inst_1n | inst_nn | inst_nn_io | data | symbol
+  val word = inst_n1 | inst_11 | inst_n2 | inst_1n | inst_nn | inst_nn_io | data | symbol
 
   val line=whiteSpace.? ~> address.? ~> define_label.* ~> (word ~ comment.? ^^ {
     result => cur += 1

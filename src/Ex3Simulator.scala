@@ -106,6 +106,7 @@ class Ex3Simulator(parsedAssembly:List[Line], invMap:mutable.HashMap[Int,String]
     }
     println("===========Simulation is quitted==========")
     dumpData()
+    Ex3IO.printConsole()
   }
 
   def addressing(operand:Int,i:Boolean):Int = {

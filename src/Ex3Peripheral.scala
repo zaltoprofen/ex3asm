@@ -23,6 +23,7 @@ trait PeripheralPort {
 
 object Ex3IO{
   val console=new tools.jline.console.ConsoleReader()
+  var consoleBuffer:String=""
   object PIN extends PeripheralPort {
     override def randomInterval():Int = random.nextInt(50)+1
     override val name: String = "PIN"
@@ -32,7 +33,9 @@ object Ex3IO{
       printf("input[%s]=",name)
       val inputData=console.readVirtualKey().toByte
       printf("%c\n",inputData.toChar)
+      consoleBuffer += inputData.toChar
       INPR=inputData
+      printConsole()
     }
   }
 
@@ -54,7 +57,9 @@ object Ex3IO{
       printf("input[%s]=",name)
       val inputData=Console.in.read.toByte
       printf("%c\n",inputData.toChar)
+      consoleBuffer += inputData.toChar
       INPR=inputData
+      printConsole()
     }
   }
 
@@ -79,7 +84,7 @@ object Ex3IO{
       if((IMSK & 0x1)!=0){POU.execute()}
       if((IMSK & 0x8)!=0){SIN.execute()}
       if((IMSK & 0x4)!=0){SOU.execute()}
-      if(PIN.isReady && (IMSK & 0x2)!=0 || SIN.isReady && (IMSK&0x8) != 0 ||
+      if(PIN.isReady && (IMSK & 0x2)!=0 || SIN.isReady && (IMSK & 0x8) != 0 ||
         POU.isReady && (IMSK & 0x1)!=0 || SOU.isReady && (IMSK & 0x4) !=0){
         IEN=false
         interruptHandler()
@@ -125,6 +130,14 @@ object Ex3IO{
       POU.isReady = false
     }
     println("output[%s]='%c'".format(currentPortName, value.toChar))
+    consoleBuffer += value.toChar
+    printConsole()
+  }
+
+  def printConsole()={
+    println("==========Console==========")
+    println(consoleBuffer)
+    println("===========================")
   }
 
   def currentPortName:String={
